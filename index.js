@@ -40,7 +40,7 @@ function open(path, options = {}) {
       ({ id }) => {
         if (id === currentId) {
           sendSubscription.remove();
-          onSend && onSend(path);
+          onSend && onSend();
         }
       }
     );

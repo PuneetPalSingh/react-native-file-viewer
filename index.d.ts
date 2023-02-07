@@ -2,7 +2,7 @@ interface RNFileViewerOptions {
   displayName?: string;
   showAppsSuggestions?: boolean;
   showOpenWithDialog?: boolean;
-  onSend?(string): any;
+  onSend?(): any;
   onDismiss?(): any;
 }
 

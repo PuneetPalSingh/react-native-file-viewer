@@ -116,12 +116,6 @@
     return viewController;
 }
 
-- (void)previewControllerDidDismiss:(CustomQLViewController *)controller {
-    if (self.hasListeners) {
-        [self sendEventWithName:DISMISS_EVENT body: @{@"id": controller.invocation}];
-    }
-}
-
 RCT_EXPORT_MODULE()
 
 - (NSArray<NSString *> *)supportedEvents {
@@ -139,21 +133,36 @@ RCT_EXPORT_METHOD(open:(NSString *)path invocation:(nonnull NSNumber *)invocatio
     QLPreviewController *controller = [[CustomQLViewController alloc] initWithFile:self.file identifier:invocationId];
     controller.modalPresentationStyle = UIModalPresentationFormSheet;
     
-    NSMutableArray *leftBarButtonItems = [NSMutableArray new];
-    if (showSendButton) {
-        [rightBarButtonItems addObject:[[UIBarButtonItem alloc] initWithTitle:@"Send" style:UIBarButtonItemStylePlain target:self action:@selector(didTapSendButton:)]];
+    if (@available(iOS 13.0, *)) {
+        [controller setModalInPresentation: true];
     }
     
-    [controller.navigationItem setLeftBarButtonItems:leftBarButtonItems animated:YES];
+    UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:controller];
+    controller.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCancel target:self action:@selector(didTapDoneButton:)];
+    
+    // QLPreviewController shows share button as rightBarButtonItem for fraction of second when presented. This blank button would stop that from happening.
+    controller.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"" style:UIBarButtonItemStylePlain target:self action:nil];
+    
+    if (showSendButton) {
+        controller.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Send" style:UIBarButtonItemStylePlain target:self action:@selector(didTapSendButton:)];
+    }
     controller.delegate = self;
     
     typeof(self) __weak weakSelf = self;
-    [[RNFileViewer topViewController] presentViewController:controller animated:YES completion:^{
+    [[RNFileViewer topViewController] presentViewController:navigationController animated:YES completion:^{
         if (weakSelf.hasListeners) {
             [weakSelf sendEventWithName:OPEN_EVENT body: @{@"id": weakSelf.invocation}];
         }
     }];
 }
+
+- (void)didTapDoneButton:(id)sender {
+     UIViewController* controller = [RNFileViewer topViewController];
+    typeof(self) __weak weakSelf = self;
+    [[RNFileViewer topViewController] dismissViewControllerAnimated:YES completion:^{
+        [weakSelf sendEventWithName:DISMISS_EVENT body: @{@"id": ((CustomQLViewController*)controller).invocation}];
+    }];
+ }
 
 - (void)didTapSendButton:(id)sender {
     typeof(self) __weak weakSelf = self;
