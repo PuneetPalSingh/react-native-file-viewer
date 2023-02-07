@@ -5,6 +5,7 @@
 
 #define OPEN_EVENT @"RNFileViewerDidOpen"
 #define DISMISS_EVENT @"RNFileViewerDidDismiss"
+#define SEND_EVENT @"RNFileViewerDidSend"
 
 @interface File: NSObject<QLPreviewItem>
 
@@ -13,9 +14,6 @@
 
 - (id)initWithPath:(NSString *)file title:(NSString *)title;
 
-@end
-
-@interface RNFileViewer ()<QLPreviewControllerDelegate>
 @end
 
 @implementation File
@@ -62,11 +60,31 @@
 
 @end
 
+@interface RNFileViewer ()<QLPreviewControllerDelegate>
+
+@property(nonatomic, strong) File *file;
+@property(nonatomic, strong) NSNumber *invocation;
+@property(nonatomic, assign) BOOL hasListeners;
+
+@end
+
 @implementation RNFileViewer
 
 - (dispatch_queue_t)methodQueue
 {
     return dispatch_get_main_queue();
+}
+
+// Will be called when this module's first listener is added.
+-(void)startObserving {
+    self.hasListeners = YES;
+    // Set up any upstream listeners or background tasks as necessary
+}
+
+// Will be called when this module's last listener is removed, or on dealloc.
+-(void)stopObserving {
+    self.hasListeners = NO;
+    // Remove upstream listeners, stop unnecessary background tasks
 }
 
 + (UIViewController*)topViewController {
@@ -99,27 +117,50 @@
 }
 
 - (void)previewControllerDidDismiss:(CustomQLViewController *)controller {
-    [self sendEventWithName:DISMISS_EVENT body: @{@"id": controller.invocation}];
+    if (self.hasListeners) {
+        [self sendEventWithName:DISMISS_EVENT body: @{@"id": controller.invocation}];
+    }
 }
 
 RCT_EXPORT_MODULE()
 
 - (NSArray<NSString *> *)supportedEvents {
-    return @[OPEN_EVENT, DISMISS_EVENT];
+    return @[OPEN_EVENT, DISMISS_EVENT, SEND_EVENT];
 }
 
 RCT_EXPORT_METHOD(open:(NSString *)path invocation:(nonnull NSNumber *)invocationId
-    options:(NSDictionary *)options)
+                  options:(NSDictionary *)options)
 {
     NSString *displayName = [RCTConvert NSString:options[@"displayName"]];
-    File *file = [[File alloc] initWithPath:path title:displayName];
-
-    QLPreviewController *controller = [[CustomQLViewController alloc] initWithFile:file identifier:invocationId];
+    BOOL showSendButton = [RCTConvert BOOL:options[@"showSendButton"]];
+    self.file = [[File alloc] initWithPath:path title:displayName];
+    self.invocation = invocationId;
+    
+    QLPreviewController *controller = [[CustomQLViewController alloc] initWithFile:self.file identifier:invocationId];
+    controller.modalPresentationStyle = UIModalPresentationFormSheet;
+    
+    NSMutableArray *leftBarButtonItems = [NSMutableArray new];
+    if (showSendButton) {
+        [rightBarButtonItems addObject:[[UIBarButtonItem alloc] initWithTitle:@"Send" style:UIBarButtonItemStylePlain target:self action:@selector(didTapSendButton:)]];
+    }
+    
+    [controller.navigationItem setLeftBarButtonItems:leftBarButtonItems animated:YES];
     controller.delegate = self;
-
+    
     typeof(self) __weak weakSelf = self;
     [[RNFileViewer topViewController] presentViewController:controller animated:YES completion:^{
-        [weakSelf sendEventWithName:OPEN_EVENT body: @{@"id": invocationId}];
+        if (weakSelf.hasListeners) {
+            [weakSelf sendEventWithName:OPEN_EVENT body: @{@"id": weakSelf.invocation}];
+        }
+    }];
+}
+
+- (void)didTapSendButton:(id)sender {
+    typeof(self) __weak weakSelf = self;
+    [[RNFileViewer topViewController] dismissViewControllerAnimated:YES completion:^{
+        if (weakSelf.hasListeners) {
+            [weakSelf sendEventWithName:SEND_EVENT body: @{@"id": weakSelf.invocation}];
+        }
     }];
 }
 
