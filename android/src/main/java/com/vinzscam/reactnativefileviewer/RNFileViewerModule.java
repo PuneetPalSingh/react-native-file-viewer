@@ -37,6 +37,45 @@ public class RNFileViewerModule extends ReactContextBaseJavaModule {
     }
   };
 
+  private static String resolveMimeType(String path) {
+  if (path == null) return "*/*";
+
+  int lastDot = path.lastIndexOf('.');
+  if (lastDot == -1) return "*/*";
+
+  String ext = path.substring(lastDot + 1).toLowerCase();
+
+  switch (ext) {
+    case "pdf":
+      return "application/pdf";
+    case "txt":
+      return "text/plain";
+    case "csv":
+      return "text/csv";
+    case "xls":
+      return "application/vnd.ms-excel";
+    case "xlsx":
+      return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    case "doc":
+      return "application/msword";
+    case "docx":
+      return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    case "ppt":
+      return "application/vnd.ms-powerpoint";
+    case "pptx":
+      return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    case "png":
+      return "image/png";
+    case "zip":
+      return "application/zip";
+    default:
+      return "*/*";
+  }
+}
+
   public RNFileViewerModule(ReactApplicationContext reactContext) {
     super(reactContext);
     this.reactContext = reactContext;
@@ -77,8 +116,7 @@ public class RNFileViewerModule extends ReactContextBaseJavaModule {
     }
 
     String extension = MimeTypeMap.getFileExtensionFromUrl(path).toLowerCase();
-    String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
-
+    String mimeType = String mimeType = resolveMimeType(path)
     Intent shareIntent = new Intent();
 
     shareIntent.setAction(Intent.ACTION_VIEW);
