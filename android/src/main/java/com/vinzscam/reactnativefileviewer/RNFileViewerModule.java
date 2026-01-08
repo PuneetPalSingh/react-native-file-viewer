@@ -116,7 +116,7 @@ public class RNFileViewerModule extends ReactContextBaseJavaModule {
     }
 
     String extension = MimeTypeMap.getFileExtensionFromUrl(path).toLowerCase();
-    String mimeType = String mimeType = resolveMimeType(path)
+    String mimeType = resolveMimeType(path);
     Intent shareIntent = new Intent();
 
     shareIntent.setAction(Intent.ACTION_VIEW);
