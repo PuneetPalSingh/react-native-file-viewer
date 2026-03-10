@@ -140,9 +140,6 @@ RCT_EXPORT_METHOD(open:(NSString *)path invocation:(nonnull NSNumber *)invocatio
     UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:controller];
     controller.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCancel target:self action:@selector(didTapDoneButton:)];
     
-    // QLPreviewController shows share button as rightBarButtonItem for fraction of second when presented. This blank button would stop that from happening.
-    controller.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"" style:UIBarButtonItemStylePlain target:self action:nil];
-    
     if (showSendButton) {
         controller.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Send" style:UIBarButtonItemStylePlain target:self action:@selector(didTapSendButton:)];
     }
